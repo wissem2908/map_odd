@@ -84,28 +84,62 @@
         villeLayer.bringToFront();
 
         // Load performances_villes
-        $.getJSON('geojson/performances_villes.json', function(pointData) {
-          performanceLayer = L.geoJson(pointData, {
-            pointToLayer: function(feature, latlng) {
-              return L.circleMarker(latlng, {
-                radius: 8,
-                fillColor: '#ff7800',
-                color: '#000',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
-              }).bindPopup(feature.properties.name || "No name");
-            }
-          }).addTo(map);
+   $.getJSON('geojson/performances_villes.json', function(pointData) {
+  // We'll collect all markers here first
+  let markers = [];
 
-          performanceLayer.bringToFront();
+  let ajaxCalls = pointData.features.map(function(feature) {
+    return $.ajax({
+      url: 'assets/php/indice_global.php',
+      method: 'POST',
+      data: { ville: feature.properties.Ville },
+      dataType: 'json'
+    }).then(function(response) {
+      let val = response ? parseFloat(response) : null;
 
-          // Fit map to all layers combined bounds
-          var allBounds = wilayaLayer.getBounds()
-            .extend(villeLayer.getBounds())
-            .extend(performanceLayer.getBounds());
-          map.fitBounds(allBounds);
-        });
+      let color;
+      if (val === null) {
+        color = 'gray';
+      } else if (val < 25) {
+        color = 'red';
+      } else if (val < 50) {
+        color = 'orange';
+      } else if (val < 75) {
+        color = 'yellow';
+      } else {
+        color = 'green';
+      }
+
+      let latlng = L.latLng(
+        feature.geometry.coordinates[1], // Latitude
+        feature.geometry.coordinates[0]  // Longitude
+      );
+
+      let marker = L.circleMarker(latlng, {
+        radius: 8,
+        fillColor: color,
+        color: '#000',
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).bindPopup(feature.properties.Ville || "No name");
+
+      markers.push(marker);
+    });
+  });
+
+  // After all AJAX calls finish
+  $.when.apply($, ajaxCalls).then(function() {
+    let performanceLayer = L.layerGroup(markers).addTo(map);
+    performanceLayer.bringToFront();
+
+    let allBounds = wilayaLayer.getBounds()
+      .extend(villeLayer.getBounds())
+      .extend(performanceLayer.getBounds());
+    map.fitBounds(allBounds);
+  });
+});
+
       });
     });
   </script>
