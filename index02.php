@@ -12,7 +12,7 @@
     /* Map container */
     #map {
       width: 100%;
-      height: 100vh;
+      height:80vh;
 
     }
 
@@ -23,12 +23,30 @@
       z-index: 1000;
       /* cursor: pointer; */
     }
+    .obj-card {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* makes it circular */
+  background-color: #ff7800;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.obj-card:hover {
+  background-color: #e56e00;
+  transform: scale(1.1);
+}
   </style>
 </head>
 
 <body>
 
   <div id="map"></div>
+  <div id="objectives-container" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script
@@ -142,6 +160,49 @@
 
       });
     });
+
+
+    /**************************** get objectifs********************************* */
+
+function getObj(){
+  $.ajax({
+    url: 'assets/php/get_obj.php',
+    method: 'GET',
+    dataType: 'json',
+    success: function(data) {
+      if (data && data.length > 0) {
+        let container = $("#objectives-container");
+        container.empty();
+
+        data.forEach(function(obj) {
+          // Create a clickable card
+          let card = $(`
+            <div class="obj-card" data-id="${obj.idObjectif}">
+              ${obj.idObjectif}
+            </div>
+          `);
+
+          // Add click event
+          card.on("click", function(){
+            let id = $(this).data("id");
+            console.log("Clicked ID:", id);
+            // You can call another function here using this id
+          });
+
+          container.append(card);
+        });
+      } else {
+        console.log("No objectives found.");
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error("Error fetching objectives:", error);
+    }
+  });
+}
+
+getObj();
+
   </script>
 
 </body>
