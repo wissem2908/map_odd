@@ -43,6 +43,55 @@
       background-color: #e56e00;
       transform: scale(1.1);
     }
+
+    /* Marker hover glow */
+    .leaflet-interactive.custom-marker:hover {
+      stroke: #fff;
+      stroke-width: 3px;
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+    }
+
+    /* Popup style */
+    .popup-container {
+      font-family: Arial, sans-serif;
+      padding: 5px 8px;
+      min-width: 150px;
+    }
+
+    .popup-container h4 {
+      margin: 0 0 5px 0;
+      font-size: 14px;
+      color: #333;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 3px;
+    }
+
+    .popup-container p {
+      margin: 0;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .popup-container {
+  font-family: Arial, sans-serif;
+  padding: 6px 8px;
+  min-width: 160px;
+}
+
+.popup-title {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  color: #2c3e50;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 3px;
+}
+
+.popup-container p {
+  margin: 2px 0;
+  font-size: 13px;
+  color: #555;
+}
+
   </style>
 </head>
 
@@ -161,7 +210,12 @@
               weight: 1,
               opacity: 1,
               fillOpacity: 0.8
-            }).bindPopup(feature.properties.Ville || "No name");
+            }).bindPopup(`
+  <div class="popup-container">
+    <h4>${feature.properties.Ville || "Ville inconnue"}</h4>
+    <p><b>Indice Global:</b> ${val !== undefined ? val : 'Non défini'}</p>
+  </div>
+`);
 
             markers.push(marker);
           });
@@ -216,14 +270,15 @@
             data.forEach(function(obj) {
               // Create a clickable card
               let card = $(`
-            <div class="obj-card" data-id="${obj.idObjectif}">
+            <div class="obj-card" data-id="${obj.idObjectif}" data-nom="${obj.intitule}">
               ${obj.idObjectif}
             </div>
           `);
 
               card.on("click", function() {
                 let id = $(this).data("id");
-              
+                let intitule = $(this).data("nom");
+
                 if (wilayaLayer) {
                   map.removeLayer(wilayaLayer);
                 }
@@ -249,7 +304,7 @@
                   },
                   dataType: 'json',
                   success: function(data) {
-                 
+
 
                     // Load the geojson file
                     $.getJSON('geojson/performances_villes.json').then(function(pointData) {
@@ -259,8 +314,10 @@
 
                         // Find matching city by idVille
                         let villeInfo = data.find(v => v.nomVille === feature.properties.Ville);
-                    
+
+                        console.log("Ville Info:", villeInfo);
                         if (villeInfo) {
+                          console.log("ville info:", villeInfo);
                           let val = parseFloat(villeInfo.resultat);
 
                           // Determine marker color
@@ -283,7 +340,13 @@
                             weight: 1,
                             opacity: 1,
                             fillOpacity: 0.8
-                          }).bindPopup(`${feature.properties.Ville}: ${val} (ODD)`);
+                          }).bindPopup(`
+  <div class="popup-container">
+    <h4 class="popup-title">${feature.properties.Ville || "Ville inconnue"}</h4>
+    <p><b>Valeur:</b> ${val}</p>
+    <p><b>ODD:</b> ${intitule}</p>
+  </div>
+`);
 
                           markers.push(marker);
                         }
@@ -298,7 +361,7 @@
                   }
                 });
 
-                              /************************** get indicateur ******************************** */
+                /************************** get indicateur ******************************** */
 
 
 
@@ -309,15 +372,15 @@
                     id_obj: id
                   },
                   success: function(response) {
-                  //   console.log("Response:", response);
-                     var data = JSON.parse(response);
+                    //   console.log("Response:", response);
+                    var data = JSON.parse(response);
 
-                     var indicateurs="";
+                    var indicateurs = "";
 
-                     for(i=0; i< data.length; i++){
-                       indicateurs += "<li><a id='indic' href='#' data='"+data[i].idIndicateur+"'>" + data[i].intitule + "</a></li>";
-                     }
-                      $("#indicateurs").html(indicateurs);
+                    for (i = 0; i < data.length; i++) {
+                      indicateurs += "<li><a data-indc='"+data[i].intitule+"' id='indic' href='#' data='" + data[i].idIndicateur + "'>" + data[i].intitule + "</a></li>";
+                    }
+                    $("#indicateurs").html(indicateurs);
                     // Handle the response as needed
                   },
                   error: function(xhr, status, error) {
@@ -345,90 +408,97 @@
     /**************************************** indicateur click ********************************************/
 
 
-$(document).on('click', '#indic', function(e) {
-    e.preventDefault();
-    var id = $(this).attr('data');
-    console.log("Clicked indicator ID:", id);
+    $(document).on('click', '#indic', function(e) {
+      e.preventDefault();
+      var id = $(this).attr('data');
+      var intitule = $(this).data('indc');
+      console.log("Clicked indicator:", intitule);
+      console.log("Clicked indicator ID:", id);
 
-    $.ajax({
+      $.ajax({
         url: 'assets/php/get_indicateur_details.php',
         method: 'POST',
-        data: { id_ind: id },
+        data: {
+          id_ind: id
+        },
         success: function(response) {
-            console.log(response);
-            var data = JSON.parse(response);
+          console.log(response);
+          var data = JSON.parse(response);
 
-            // Remove old performance layer if exists
-            if (window.performanceLayer) {
-                map.removeLayer(window.performanceLayer);
-            }
+          // Remove old performance layer if exists
+          if (window.performanceLayer) {
+            map.removeLayer(window.performanceLayer);
+          }
 
-            // Optional: reload wilaya background each time indicator is clicked
-            if (wilayaLayer) {
-                map.removeLayer(wilayaLayer);
-            }
-            $.getJSON('geojson/wilaya.json').then(function (geoData) {
-                wilayaLayer = L.geoJson(geoData, {
-                    style: {
-                        className: 'wilaya-shape',
-                        opacity: 0.4,
-                        color: '#602e52ff',
-                        fillOpacity: 1,
-                        fillColor: "#bcf9d3ff"
-                    }
-                }).addTo(map);
-                wilayaLayer.bringToBack();
+          // Optional: reload wilaya background each time indicator is clicked
+          if (wilayaLayer) {
+            map.removeLayer(wilayaLayer);
+          }
+          $.getJSON('geojson/wilaya.json').then(function(geoData) {
+            wilayaLayer = L.geoJson(geoData, {
+              style: {
+                className: 'wilaya-shape',
+                opacity: 0.4,
+                color: '#602e52ff',
+                fillOpacity: 1,
+                fillColor: "#bcf9d3ff"
+              }
+            }).addTo(map);
+            wilayaLayer.bringToBack();
+          });
+
+          // Load villes points and recolor based on indicator results
+          $.getJSON('geojson/performances_villes.json').then(function(pointData) {
+            let markers = [];
+
+            pointData.features.forEach(function(feature) {
+              // Find matching city in indicator data
+              let villeInfo = data.find(v => v.nomVille === feature.properties.Ville);
+
+              if (villeInfo) {
+                let val = parseFloat(villeInfo.valeurNormaliseCor);
+                let uniteMesure = villeInfo.uniteMesure; // ✅ directly from matched city
+                console.log("Valeur Normalisée Cor:", val, "Ville:", villeInfo.nomVille, uniteMesure);
+
+                // Determine marker color
+                let color;
+                if (isNaN(val)) color = 'gray';
+                else if (val < 25) color = 'red';
+                else if (val < 50) color = 'orange';
+                else if (val < 75) color = 'yellow';
+                else color = 'green';
+
+                let latlng = L.latLng(
+                  feature.geometry.coordinates[1], // lat
+                  feature.geometry.coordinates[0] // lng
+                );
+
+                let marker = L.circleMarker(latlng, {
+                  radius: 8,
+                  fillColor: color,
+                  color: '#000',
+                  weight: 1,
+                  opacity: 1,
+                  fillOpacity: 0.8
+                }).bindPopup(`
+  <div class="popup-container">
+    <h4 class="popup-title">${feature.properties.Ville || "Ville inconnue"}</h4>
+    <p><b>Valeur:</b> ${val} <span class="unit">(${uniteMesure})</span></p>
+    <p><b>Indicateur:</b> ${intitule}</p>
+  </div>
+`);
+
+                markers.push(marker);
+              }
             });
 
-            // Load villes points and recolor based on indicator results
-            $.getJSON('geojson/performances_villes.json').then(function(pointData) {
-                let markers = [];
-
-                pointData.features.forEach(function(feature) {
-                    // Find matching city in indicator data
-                    let villeInfo = data.find(v => v.nomVille === feature.properties.Ville);
-
-                    if (villeInfo) {
-                        let val = parseFloat(villeInfo.valeurNormaliseCor);
-                        console.log("Valeur Normalisée Cor:", val, "Ville:", villeInfo.nomVille);
-
-                        // Determine marker color
-                        let color;
-                        if (isNaN(val)) color = 'gray';
-                        else if (val < 25) color = 'red';
-                        else if (val < 50) color = 'orange';
-                        else if (val < 75) color = 'yellow';
-                        else color = 'green';
-
-                        let latlng = L.latLng(
-                            feature.geometry.coordinates[1], // lat
-                            feature.geometry.coordinates[0]  // lng
-                        );
-
-                        let marker = L.circleMarker(latlng, {
-                            radius: 8,
-                            fillColor: color,
-                            color: '#000',
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        }).bindPopup(`${feature.properties.Ville}: ${val} (Indicateur)`);
-
-                        markers.push(marker);
-                    }
-                });
-
-                // Add the new markers to the map
-                window.performanceLayer = L.layerGroup(markers).addTo(map);
-                window.performanceLayer.bringToFront();
-            });
+            // Add the new markers to the map
+            window.performanceLayer = L.layerGroup(markers).addTo(map);
+            window.performanceLayer.bringToFront();
+          });
         }
+      });
     });
-});
-
-
-
-
   </script>
 
 </body>

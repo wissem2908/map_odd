@@ -8,7 +8,7 @@ try {
     $bdd = new PDO("mysql:host=" . DB_SERVER . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
 
    
-    $req = $bdd->prepare('SELECT * FROM `indicateurvilles` left join objectifvilles on indicateurvilles.idObjectifVille = objectifvilles.idObjectifVille left join villes on objectifvilles.idVille = villes.idVille where idIndicateur = ? ');
+    $req = $bdd->prepare('SELECT * FROM `indicateurvilles` left join objectifvilles on indicateurvilles.idObjectifVille = objectifvilles.idObjectifVille left join villes on objectifvilles.idVille = villes.idVille left join indicateurs on indicateurvilles.idIndicateur = indicateurs.idIndicateur where indicateurvilles.idIndicateur = ? ');
      $res = $req->execute(array($_POST['id_ind']));
 
 
