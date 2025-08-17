@@ -36,6 +36,16 @@
       z-index: 1000;
       cursor: pointer;
     }
+
+    .wilaya-tooltip {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #000;
+    }
   </style>
 </head>
 
@@ -126,6 +136,16 @@
 
       function onEachWilaya(feature, layer) {
         wilayaFeatures.push(feature);
+
+        // Tooltip on hover
+        if (feature.properties && feature.properties.name) {
+          layer.bindTooltip(feature.properties.name, {
+            permanent: false, // show only on hover
+            direction: "center",
+            className: "wilaya-tooltip"
+          });
+        }
+
 
         layer.on({
           mouseover: function(e) {

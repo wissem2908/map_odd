@@ -73,23 +73,33 @@
     }
 
     .popup-container {
-  font-family: Arial, sans-serif;
-  padding: 6px 8px;
-  min-width: 160px;
-}
+      font-family: Arial, sans-serif;
+      padding: 6px 8px;
+      min-width: 160px;
+    }
 
-.popup-title {
-  margin: 0 0 6px 0;
-  font-size: 14px;
-  color: #2c3e50;
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 3px;
-}
+    .popup-title {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+      color: #2c3e50;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 3px;
+    }
 
-.popup-container p {
-  margin: 2px 0;
-  font-size: 13px;
-  color: #555;
+    .popup-container p {
+      margin: 2px 0;
+      font-size: 13px;
+      color: #555;
+    }
+    .wilaya-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-weight: bold;
+  font-size: 12px;
+  color: #000;
+  text-shadow: 1px 1px 2px #fff;
+  pointer-events: none; /* so the label doesn’t block clicks */
 }
 
   </style>
@@ -109,6 +119,8 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
 
   <script>
     var map = L.map('map').setView([28, 3], 5); // Centered on Algiers, Algeria
@@ -156,15 +168,44 @@
     }
 
     /******************************************* geojson ********************************************* */
-    // Load wilayas
-    function loadWilaya() {
-      return $.getJSON('geojson/wilaya.json').then(function(data) {
-        wilayaLayer = L.geoJson(data, {
-          style: styleWilaya
-        }).addTo(map);
-        return wilayaLayer;
-      });
-    }
+function loadWilaya() {
+  return $.getJSON('geojson/wilaya.json').then(function(data) {
+    wilayaLayer = L.geoJson(data, {
+      style: styleWilaya,
+      onEachFeature: function(feature, layer) {
+        if (feature.properties && feature.properties.name) {
+          // Calculate area of wilaya (in km² approx)
+          var area = turf.area(feature) / 1e6; // m² → km²
+
+          // Decide font size based on area
+          var fontSize = "8px";
+          if (area > 40000) fontSize = "14px"; // large wilayas
+          else if (area > 20000) fontSize = "12px";
+          else if (area > 10000) fontSize = "10px";
+          else fontSize = "8px"; // very small wilayas
+
+          layer.bindTooltip(feature.properties.name, {
+            permanent: true,
+            direction: "center",
+            className: "wilaya-label",
+          });
+
+          // Apply custom font size after tooltip is added
+          layer.on("add", function() {
+            var tooltipEl = layer.getTooltip().getElement();
+            if (tooltipEl) {
+              tooltipEl.style.fontSize = fontSize;
+            }
+          });
+        }
+      }
+    }).addTo(map);
+
+    return wilayaLayer;
+  });
+}
+
+
 
     function loadVilles() {
       return $.getJSON('geojson/limite_villes.json').then(function(data) {
@@ -291,7 +332,35 @@
                       color: '#602e52ff',
                       fillOpacity: 1,
                       fillColor: "#f7bcf9ff",
-                    }
+                    },
+                    
+                          onEachFeature: function(feature, layer) {
+        if (feature.properties && feature.properties.name) {
+          // Calculate area of wilaya (in km² approx)
+          var area = turf.area(feature) / 1e6; // m² → km²
+
+          // Decide font size based on area
+          var fontSize = "8px";
+          if (area > 40000) fontSize = "14px"; // large wilayas
+          else if (area > 20000) fontSize = "12px";
+          else if (area > 10000) fontSize = "10px";
+          else fontSize = "8px"; // very small wilayas
+
+          layer.bindTooltip(feature.properties.name, {
+            permanent: true,
+            direction: "center",
+            className: "wilaya-label",
+          });
+
+          // Apply custom font size after tooltip is added
+          layer.on("add", function() {
+            var tooltipEl = layer.getTooltip().getElement();
+            if (tooltipEl) {
+              tooltipEl.style.fontSize = fontSize;
+            }
+          });
+        }
+      }
                   }).addTo(map);
                   wilayaLayer.bringToBack(); // put it under all other layers
                 });
@@ -378,7 +447,7 @@
                     var indicateurs = "";
 
                     for (i = 0; i < data.length; i++) {
-                      indicateurs += "<li><a data-indc='"+data[i].intitule+"' id='indic' href='#' data='" + data[i].idIndicateur + "'>" + data[i].intitule + "</a></li>";
+                      indicateurs += "<li><a data-indc='" + data[i].intitule + "' id='indic' href='#' data='" + data[i].idIndicateur + "'>" + data[i].intitule + "</a></li>";
                     }
                     $("#indicateurs").html(indicateurs);
                     // Handle the response as needed
@@ -442,7 +511,34 @@
                 color: '#602e52ff',
                 fillOpacity: 1,
                 fillColor: "#bcf9d3ff"
-              }
+              },
+                    onEachFeature: function(feature, layer) {
+        if (feature.properties && feature.properties.name) {
+          // Calculate area of wilaya (in km² approx)
+          var area = turf.area(feature) / 1e6; // m² → km²
+
+          // Decide font size based on area
+          var fontSize = "8px";
+          if (area > 40000) fontSize = "14px"; // large wilayas
+          else if (area > 20000) fontSize = "12px";
+          else if (area > 10000) fontSize = "10px";
+          else fontSize = "8px"; // very small wilayas
+
+          layer.bindTooltip(feature.properties.name, {
+            permanent: true,
+            direction: "center",
+            className: "wilaya-label",
+          });
+
+          // Apply custom font size after tooltip is added
+          layer.on("add", function() {
+            var tooltipEl = layer.getTooltip().getElement();
+            if (tooltipEl) {
+              tooltipEl.style.fontSize = fontSize;
+            }
+          });
+        }
+      }
             }).addTo(map);
             wilayaLayer.bringToBack();
           });
